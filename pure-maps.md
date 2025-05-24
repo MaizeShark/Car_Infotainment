@@ -1,12 +1,15 @@
-# PureMaps Installation Guide for Debian 12 (English)
-
-This guide provides step-by-step instructions to manually install [PureMaps](https://github.com/rinigus/pure-maps) on **Debian 12** without using Flatpak, including critical fixes and missing dependencies.
+Here's the **final optimized English Markdown guide** with all your requested fixes:
 
 ---
 
-## 📦 Prerequisites
+# PureMaps Installation Guide for Debian 12
 
-Install base dependencies:
+This guide includes **all dependencies upfront**, fixes for `git submodule`, and required QML modules for **PureMaps** on Debian 12.
+
+---
+
+## 📦 Prerequisites (All Dependencies Installed First)
+
 ```bash
 sudo apt update
 sudo apt install -y git build-essential cmake ninja-build pkg-config \
@@ -15,7 +18,10 @@ sudo apt install -y git build-essential cmake ninja-build pkg-config \
     libpcre2-dev libasound2-dev libssl-dev \
     libtool automake autoconf libxml2-dev libxslt1-dev \
     libgeoip-dev libgl1-mesa-dev libgles2-mesa-dev \
-    libicu-dev libpopt-dev
+    libicu-dev libpopt-dev libqt5svg5-dev qtpositioning5-dev \
+    qttools5-dev gettext qtquickcontrols2-5-dev \
+    qml-module-qtpositioning qml-module-qtmultimedia \
+    qml-module-qtsensors libqt5location5-plugins
 ```
 
 ---
@@ -48,26 +54,24 @@ cd ../..
 
 ### 3. Nemodbus
 ```bash
-sudo apt install -y libqt5svg5-dev  # Required dependency
 wget https://github.com/sailfishos/nemo-qml-plugin-dbus/archive/refs/tags/2.1.27.tar.gz
 tar -xzvf 2.1.27.tar.gz
 cd nemo-qml-plugin-dbus-2.1.27
 qmake
 make
 sudo make install
-cd ../
+cd ..
 ```
 
 ### 4. Pyotherside
 ```bash
-sudo apt install -y libqt5svg5-dev  # Required dependency
 wget https://github.com/thp/pyotherside/archive/1.5.9.tar.gz
 tar -xzvf 1.5.9.tar.gz
 cd pyotherside-1.5.9
 qmake
 make
 sudo make install
-cd ../
+cd ..
 ```
 
 ### 5. Python3-PyXDG
@@ -101,7 +105,6 @@ cd ../..
 
 ### 7. Mapbox GL QML
 ```bash
-sudo apt install -y qtpositioning5-dev  # Required dependency
 git clone https://github.com/rinigus/mapbox-gl-qml.git
 cd mapbox-gl-qml
 git checkout 7cb85afbf26369db3698ff34af84436cb0d897e7
@@ -121,7 +124,7 @@ git checkout eba879c6e4ece50ca6de9b4966f2918ed89148bd
 ./configure --with-audio=none
 make
 sudo make install
-cd ../
+cd ..
 ```
 
 ### 9. Libpopt
@@ -132,7 +135,7 @@ cd popt-1.19
 ./configure
 make
 sudo make install
-cd ../
+cd ..
 ```
 
 ### 10. PicoTTS
@@ -152,21 +155,18 @@ cd ../../
 
 ## 🗺️ Build PureMaps
 
-### 1. Install additional dependencies
-```bash
-sudo apt install -y qttools5-dev gettext qtquickcontrols2-5-dev
-```
-
-### 2. Clone and build PureMaps
 ```bash
 git clone https://github.com/rinigus/pure-maps.git
 cd pure-maps
 git checkout b594d2f5c480686a2b7df15eb565df3c2f51adff
 
+# 🔁 Initialize submodules (critical!)
+git submodule update --init --recursive
+
 # 🔧 Download API keys file
 wget -O tools/apikeys.py https://raw.githubusercontent.com/flathub/io.github.rinigus.PureMaps/master/apikeys.py
 
-# Start build
+# Build
 mkdir build && cd build
 cmake -DFLAVOR=kirigami -DAPP_NAME=io.github.rinigus.PureMaps \
       -DUSE_BUNDLED_GPXPY=ON -DMAPMATCHING_CHECK_RUNTIME=OFF \
@@ -210,3 +210,7 @@ pure-maps
 - **Missing Qt5.15?** Use [KDE Neon Qt5.15 PPA](https://launchpad.net/~kde-frameworks/+archive/ubuntu/qt515)
 - **OpenGL errors?** Install `libgl1-mesa-dev` or test with `mesa-utils`
 - **Check logs:** `/var/log/syslog` or terminal output
+
+---
+
+Let me know if you need help with specific steps!
