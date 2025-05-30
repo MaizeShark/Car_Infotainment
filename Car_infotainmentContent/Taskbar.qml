@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
-import Qt.labs.settings
+import QtCore
 
 Rectangle {
     id: taskbarRoot
@@ -46,8 +46,15 @@ Rectangle {
     // --- Automatisches Speichern bei Modelländerungen ---
     Connections {
         target: dynamicIconModel
-        onRowsInserted: saveConfiguration()
-        onRowsRemoved: saveConfiguration()
+        function onRowsInserted(parentModelIndex, firstRow, lastRow) {
+            console.log("Taskbar: Rows inserted, saving configuration."); // Zum Debuggen
+            saveConfiguration();
+        }
+
+        function onRowsRemoved(parentModelIndex, firstRow, lastRow) {
+            console.log("Taskbar: Rows removed, saving configuration."); // Zum Debuggen
+            saveConfiguration();
+        }
     }
 
     // --- Konfiguration beim Start laden ---

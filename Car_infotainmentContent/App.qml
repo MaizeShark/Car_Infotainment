@@ -1,5 +1,4 @@
 import QtQuick
-import Car_infotainment
 import QtQuick.VirtualKeyboard
 
 Window {
