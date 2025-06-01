@@ -43,6 +43,7 @@ add_executable(${PROJECT_NAME}
     src/climateprovider.h
     src/climateprovider.cpp
     src/volumeprovider.h src/volumeprovider.cpp
+    src/appprovider.h src/appprovider.cpp
 )
 
 # --- Verlinke Qt-Module ---

@@ -5,7 +5,6 @@
         <file>Car_infotainment/EventListSimulator.qml</file>
         <file>Car_infotainment/qmldir</file>
         <file>Car_infotainmentContent/Main.qml</file>
-        <file>Car_infotainmentContent/App.qml</file>
         <file>Car_infotainmentContent/Climate.qml</file>
         <file>Car_infotainmentContent/Screen01.ui.qml</file>
         <file>Car_infotainmentContent/Taskbar.qml</file>
@@ -20,5 +19,6 @@
         <file>Abel/Abel-Regular.ttf</file>
         <file>qtquickcontrols2.conf</file>
         <file>Car_infotainmentContent/icons/app-drawer.png</file>
+        <file>Car_infotainmentContent/AppMenuGridView.qml</file>
     </qresource>
 </RCC>

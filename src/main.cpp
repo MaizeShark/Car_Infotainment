@@ -1,9 +1,10 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include "languagemanager.h" // Unser Manager
+#include "languagemanager.h"
 #include "volumeprovider.h"
 #include "climateprovider.h"
+#include "appprovider.h"
 
 // Platzhalter für deine C++ Provider, falls du welche hast und sie so registrierst.
 // Wenn climateProvider und volumeProvider reine QML-Singletons sind (z.B. über qmldir definiert),
@@ -33,8 +34,15 @@ int main(int argc, char *argv[])
     // Beispiel: Wenn deine Provider C++ Klassen sind, die du als Kontext-Properties registrieren willst:
     ClimateProvider* climateProvider = new ClimateProvider(&app); // &app als Parent (ggf. Konstruktor anpassen)
     engine.rootContext()->setContextProperty("climateProvider", climateProvider);
+
     VolumeProvider* volumeProvider = new VolumeProvider(&app); // &app als Parent (ggf. Konstruktor anpassen)
     engine.rootContext()->setContextProperty("volumeProvider", volumeProvider);
+
+    AppProvider* appProvider = new AppProvider(&app);
+    engine.rootContext()->setContextProperty("appProvider", appProvider);
+
+    appProvider->addApp("Map", "qrc:/Car_infotainmentContent/icons/map.png", "red");
+    appProvider->addApp("Spotify", "qrc:/Car_infotainmentContent/icons/Spotify.png", "limegreen");
 
     languageManager->setCurrentLanguage("de");
 
@@ -66,3 +74,5 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+
+

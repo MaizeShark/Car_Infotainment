@@ -236,6 +236,14 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
         }
     }
 
+    AppMenuGridView {
+        id: appMenu
+        objectName: "appMenu"
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 200
+    }
+
     Item {
         id: taskbarBlurBackground
         y: 920
@@ -374,8 +382,8 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                 Text {
                     id: volText
                     text: isNaN(volumeRoot.volume)
-                        ? "--"
-                        : Number(volumeRoot.volume).toFixed(0) + " %"
+                          ? "--"
+                          : Number(volumeRoot.volume).toFixed(0) + " %"
                     font.pixelSize: 38
                     color: "white"
                     font.bold: true
@@ -466,14 +474,17 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                 myAppTaskbar.removeIconByIndex(0);
             }
         }
+        TextField {
+            id: appIdInput
+            placeholderText: "App-ID eingeben (z. B. YouTube)"
+            onAccepted: {
+                if (text.length > 0) {
+                    appProvider.addApp(text, "qrc:/Car_infotainmentContent/icons/placeholder.png", "#FF0000");
+                } else {
+                    console.log("Bitte eine App-ID eingeben.");
+                }
+            }
+        }
     }
 
-
-
-
 }
-
-
-
-
-
