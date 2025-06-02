@@ -102,33 +102,33 @@ Rectangle {
             console.log("Icon hinzugefügt: " + name + ", Source: " + source);
         }
 
-        function removeIconByName(name) {
-            for (let i = 0; i < dynamicIconModel.count; i++) {
-                if (dynamicIconModel.get(i).itemName === name) {
-                    dynamicIconModel.remove(i);
-                    console.log("Icon entfernt: " + name);
-                    return;
-                }
-            }
-            console.log("Icon zum Entfernen nicht gefunden: " + name);
-        }
-         function removeIconByIndex(index) {
-            if (index >= 0 && index < dynamicIconModel.count) {
-                let item = dynamicIconModel.get(index);
-                dynamicIconModel.remove(index);
-                console.log("Icon an Index " + index + " entfernt: " + item.itemName);
-            } else {
-                console.log("Ungültiger Index zum Entfernen: " + index);
+    function removeIconByName(name) {
+        for (let i = 0; i < dynamicIconModel.count; i++) {
+            if (dynamicIconModel.get(i).itemName === name) {
+                dynamicIconModel.remove(i);
+                console.log("Icon entfernt: " + name);
+                return;
             }
         }
+        console.log("Icon zum Entfernen nicht gefunden: " + name);
+    }
+    function removeIconByIndex(index) {
+        if (index >= 0 && index < dynamicIconModel.count) {
+            let item = dynamicIconModel.get(index);
+            dynamicIconModel.remove(index);
+            console.log("Icon an Index " + index + " entfernt: " + item.itemName);
+        } else {
+            console.log("Ungültiger Index zum Entfernen: " + index);
+        }
+    }
 
-        function removeLastDynamicIcon() {
-            if (dynamicIconModel.count > 0) {
-                let item = dynamicIconModel.get(dynamicIconModel.count - 1);
-                dynamicIconModel.remove(dynamicIconModel.count - 1);
-                console.log("Letztes dynamisches Icon entfernt: " + item.itemName);
-            }
+    function removeLastDynamicIcon() {
+        if (dynamicIconModel.count > 0) {
+            let item = dynamicIconModel.get(dynamicIconModel.count - 1);
+            dynamicIconModel.remove(dynamicIconModel.count - 1);
+            console.log("Letztes dynamisches Icon entfernt: " + item.itemName);
         }
+    }
 
 
     // --- Breitenberechnung der Taskleiste (angepasst an totalIconItemLayoutSize) ---
@@ -178,7 +178,7 @@ Rectangle {
                     anchors.fill: parent
                     radius: 8
                     visible: appDrawerImage.status !== Image.Ready
-                    Text { text:"AD"; anchors.centerIn: parent; color:"white"}
+                    Text { text:"AD"; anchors.centerIn: parent; color:"blue"}
                 }
             }
 

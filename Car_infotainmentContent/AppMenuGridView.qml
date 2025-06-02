@@ -2,6 +2,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15 // Or QtQuick.Controls if not using specific 2.15 features
 import QtQuick.Layouts 1.15  // Or QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: container
@@ -149,8 +150,8 @@ Rectangle {
     property bool contentOverflows: _calculatedLayout.ovf
 
     // Animation for size changes
-    Behavior on width { SmoothedAnimation { duration: 250; velocity: 600 } }
-    Behavior on height { SmoothedAnimation { duration: 250; velocity: 600 } }
+    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
+    Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
 
     // --- GridView to display the items ---
     GridView {
@@ -238,6 +239,7 @@ Rectangle {
                 property bool dragAllowed: false
                 property real mouseX: 0
                 property real mouseY: 0
+                hoverEnabled: true
 
                 Timer {
                     id: holdTimer
@@ -283,6 +285,9 @@ Rectangle {
                     dragArea.mouseX = mouse.x;
                     dragArea.mouseY = mouse.y;
                 }
+                onEntered: { iconItem.scale = 1.05; iconItem.z = 1; }
+                onExited: { iconItem.scale = 1; iconItem.z = 0; }
+                Behavior on scale { NumberAnimation { duration: 150 } }
             }
 
             // Inhalt wie gehabt
@@ -298,6 +303,16 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     property var itemModelData: modelData
                     sourceComponent: (itemModelData.iconSource && itemModelData.iconSource !== "") ? imageComponent : rectangleComponent
+                    DropShadow {
+                        anchors.fill: iconLoader.item   // Ändere hier: benutze iconLoader.item als Quelle
+                        source: iconLoader.item         // Ändere hier: benutze iconLoader.item als Quelle
+                        horizontalOffset: 0
+                        verticalOffset: 4
+                        radius: 7.0
+                        samples: 17
+                        color: "#40000000"
+                        cached: true
+                    }
                 }
 
                 Text {
