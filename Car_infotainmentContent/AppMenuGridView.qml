@@ -173,28 +173,39 @@ Rectangle {
                 origin.y: height / 2
             }
 
-            // Add animations for dragging
-            states: State {
-                name: "dragging"
-                when: dragArea.drag.active
-                PropertyChanges {
-                    target: iconItem
-                    z: 2
-                    opacity: 0.9
+            // New state for press animation
+            states: [
+                State {
+                    name: "dragging"
+                    when: dragArea.drag.active
+                    PropertyChanges {
+                        target: iconItem
+                        z: 2
+                        opacity: 0.9
+                    }
+                    PropertyChanges {
+                        target: itemScale
+                        xScale: 1.1
+                        yScale: 1.1
+                    }
+                },
+                State {
+                    name: "pressed"
+                    when: dragArea.pressed && !dragArea.drag.active
+                    PropertyChanges {
+                        target: itemScale
+                        xScale: 1.2
+                        yScale: 1.2
+                    }
                 }
-                PropertyChanges {
-                    target: itemScale
-                    xScale: 1.1
-                    yScale: 1.1
-                }
-            }
+            ]
 
             transitions: Transition {
                 from: "*"
                 to: "*"
                 NumberAnimation {
                     properties: "opacity, xScale, yScale"
-                    duration: 150
+                    duration: 1500
                     easing.type: Easing.OutQuad
                 }
             }
@@ -215,7 +226,7 @@ Rectangle {
                     let from = drag.source.index;
                     let to = index;
                     console.log("Swap from", from, "to", to);
-                    if (from !== to) {
+                    if (drag.source.dragAllowed && from !== to) {
                         appProvider.moveItem(from, to);
                     }
                 }
@@ -224,11 +235,23 @@ Rectangle {
             MouseArea {
                 id: dragArea
                 anchors.fill: parent
+                property bool dragAllowed: false
                 property real mouseX: 0
                 property real mouseY: 0
 
+                Timer {
+                    id: holdTimer
+                    interval: 1500
+                    running: false
+                    repeat: false
+                    onTriggered: {
+                        dragArea.dragAllowed = true;
+                        console.log("Drag enabled on", index);
+                    }
+                }
+
                 drag {
-                    target: iconItem
+                    target: dragArea.dragAllowed ? iconItem : null
                     axis: Drag.XAndYAxis
                     minimumX: 1
                     minimumY: 1
@@ -237,10 +260,10 @@ Rectangle {
                 onPressed: function(mouse) {
                     dragArea.mouseX = mouse.x;
                     dragArea.mouseY = mouse.y;
-                    console.log("Pressed on index", index);
+                    holdTimer.restart();
                 }
                 onReleased: {
-                    // Map the drop position to grid coordinates
+                    holdTimer.stop();
                     var pos = iconItem.gridRef.mapFromItem(iconItem, dragArea.mouseX, dragArea.mouseY);
                     var itemsPerRow = Math.floor(iconItem.gridRef.width / iconItem.gridRef.cellWidth);
                     var newCol = Math.floor(pos.x / iconItem.gridRef.cellWidth);
@@ -249,11 +272,12 @@ Rectangle {
                     if (targetIndex >= iconItem.gridRef.count)
                         targetIndex = iconItem.gridRef.count - 1;
                     console.log("Released - swap from", iconItem.delegateIndex, "to", targetIndex);
-                    if (iconItem.delegateIndex !== targetIndex)
+                    if (dragArea.dragAllowed && iconItem.delegateIndex !== targetIndex)
                         appProvider.moveItem(iconItem.delegateIndex, targetIndex);
                     // Snap back to grid cell position
                     iconItem.x = iconItem.gridRef.cellWidth * (iconItem.delegateIndex % itemsPerRow);
                     iconItem.y = iconItem.gridRef.cellHeight * Math.floor(iconItem.delegateIndex / itemsPerRow);
+                    dragArea.dragAllowed = false;
                 }
                 onPositionChanged: function(mouse) {
                     dragArea.mouseX = mouse.x;
