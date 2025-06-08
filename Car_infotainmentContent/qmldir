@@ -1,0 +1,5 @@
+module Car_infotainmentContent
+Main 1.0 Main.qml
+AppMenuGridView 1.0 AppMenuGridView.qml
+Climate 1.0 Climate.qml
+Taskbar 1.0 Taskbar.qml

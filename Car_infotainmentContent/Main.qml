@@ -4,15 +4,15 @@ import QtQuick.Window
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import QtQuick3D
+import QtWayland.Compositor
+import QtWayland.Compositor.XdgShell
+import io.qt.examples.customextension 1.0
 
 // Wichtig: Stellen Sie sicher, dass Qt Design Studio/Ihr Projekt Taskbar.qml finden kann.
 // Wenn Taskbar.qml im selben Ordner wie main.qml liegt, ist kein spezieller Import nötig.
 // Ansonsten: import "./components" o.ä. und Taskbar.qml in den Ordner components legen.
-import QtQuick.Studio.Components 1.0
-import QtQuick.Studio.DesignEffects
-
-import QtQuick.Scene3D
-import "./3d"
+// import QtQuick.Studio.Components 1.0
+// import QtQuick.Studio.DesignEffects
 
 Window { // Oder Rectangle, wenn dies eine Komponente ist
     id: mainRoot
@@ -31,7 +31,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
         y: 0
         width: 1920
         height: 1080
-        source: "../Images/1239183-3840x2160-desktop-4k-green-forest-background-photo.jpg"
+        source: "qrc:/Images/1239183-3840x2160-desktop-4k-green-forest-background-photo.jpg"
         fillMode: Image.PreserveAspectCrop
     }
 
@@ -42,18 +42,254 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
         anchors.top: parent.top
         height: parent.height - 160
 
+        // Replace the SurfaceAggregator with a proper compositor setup
         Item {
             id: puremaps
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: parent.width / 2
+            clip: true // Verhindert, dass der Inhalt über die Grenzen hinaus gezeichnet wird
 
-            Image {
-                id: puremap
-                source: "../Images/pure-maps2.png"
+            // --- Fixed: Use Rectangle as base container instead of SurfaceAggregator ---
+            Rectangle {
+                id: compositorSurface
                 anchors.fill: parent
-                fillMode: Image.Pad
+                color: "transparent"
+
+                // Hier kommt die UI des Compositor-Screens hin (vorher in CompositorScreen.qml)
+                WaylandMouseTracker {
+                    id: mouseTracker
+                    anchors.fill: parent
+                    windowSystemCursorEnabled: !clientCursor.visible
+
+                    // Hintergrundbild für den Compositor-Bereich
+                    Image {
+                        id: background
+                        anchors.fill: parent
+                        fillMode: Image.Tile
+                        // KORREKTER PFAD zum Bild aus deiner resources.qrc
+                        source: "qrc:/Images/1239183-3840x2160-desktop-4k-green-forest-background-photo.jpg"
+                        smooth: true
+                    }
+
+                    // Client-Mauszeiger
+                    WaylandCursorItem {
+                        id: clientCursor
+                        x: mouseTracker.mouseX
+                        y: mouseTracker.mouseY
+                        seat: comp.defaultSeat // Verweis auf den defaultSeat des Compositors
+                    }
+
+                    // Seitenleiste zur Anzeige der Client-Fenster
+                    Rectangle {
+                        id: sidebar
+                        width: 250
+                        height: parent.height
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        color: "#AA202020" // Etwas dunkler für besseren Look
+                        radius: 10
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: 5
+                            spacing: 5
+
+                            Repeater {
+                                model: comp.itemList
+                                Rectangle {
+                                    height: 54
+                                    width: sidebar.width - 10
+                                    color: "#CCFFFFFF"
+                                    radius: 5
+                                    Text {
+                                        text: "window: " + modelData.shellSurface.toplevel.title + "\n["
+                                            + modelData.shellSurface.toplevel.appId
+                                            + (modelData.isCustom ? "]\nfont size: " + modelData.fontSize : "]\nNo extension")
+                                        color: modelData.isCustom ? "black" : "darkgray"
+                                    }
+                                    MouseArea {
+                                        enabled: modelData.isCustom
+                                        anchors.fill: parent
+                                        onWheel: (wheel) => {
+                                            if (wheel.angleDelta.y > 0)
+                                                modelData.fontSize++
+                                            else if (wheel.angleDelta.y < 0 && modelData.fontSize > 3)
+                                                modelData.fontSize--
+                                        }
+                                        onDoubleClicked: {
+                                            comp.customExtension.close(modelData.surface)
+                                        }
+                                    }
+                                }
+                            }
+                            Text {
+                                visible: comp.itemList.length > 0
+                                width: sidebar.width - 10
+                                color: "white"
+                                text: "Mouse wheel to change font size. Double click to close"
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                    }
+
+                    // Button zum Umschalten der Fensterdekoration
+                    Rectangle {
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: 10
+                        width: 100
+                        height: 100
+                        property bool on : true
+                        color: on ? "#DEC0DE" : "#FACADE"
+                        Text {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            text: "Toggle window decorations"
+                            wrapMode: Text.WordWrap
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                parent.on = !parent.on
+                                comp.setDecorations(parent.on);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Fixed: Proper WaylandCompositor setup ---
+            WaylandCompositor {
+                id: comp
+                property alias customExtension: custom
+                property var itemList: []
+
+                // KORREKTUR: WaylandOutput mit korrekter Konfiguration
+                defaultOutput: WaylandOutput {
+                    id: waylandOutput
+                    compositor: comp
+                    window: mainRoot
+                }
+
+                // Der Rest deiner Compositor-Logik bleibt gleich...
+                function itemForSurface(surface) {
+                    var n = itemList.length
+                    for (var i = 0; i < n; i++) {
+                        if (itemList[i].surface === surface)
+                            return itemList[i]
+                    }
+                }
+
+                Component {
+                    id: chromeComponent
+                    ShellSurfaceItem {
+                        id: chrome
+                        property bool isCustom
+                        property int fontSize: 12
+                        onSurfaceDestroyed: {
+                            var index = itemList.indexOf(chrome)
+                            if (index > -1) {
+                                var listCopy = itemList
+                                listCopy.splice(index, 1)
+                                itemList = listCopy
+                            }
+                            chrome.destroy()
+                        }
+                        transform: [
+                            Rotation {
+                                id: yRot
+                                origin.x: chrome.width / 2; origin.y: chrome.height / 2
+                                angle: 0
+                                axis { x: 0; y: 1; z: 0 }
+                            }
+                        ]
+                        NumberAnimation {
+                            id: spinAnimation
+                            running: false; loops: 2; target: yRot; property: "angle"
+                            from: 0; to: 360; duration: 400
+                        }
+                        function doSpin(ms) { spinAnimation.start() }
+                        NumberAnimation {
+                            id: bounceAnimation
+                            running: false; target: chrome; property: "y"
+                            from: 0; to: comp.defaultOutput.geometry.height - chrome.height
+                            easing.type: Easing.OutBounce; duration: 1000
+                        }
+                        function doBounce(ms) { bounceAnimation.start() }
+                        onFontSizeChanged: {
+                            custom.setFontSize(surface, fontSize)
+                        }
+                    }
+                }
+
+                // Fixed: Proper customObjectComponent definition
+                Component {
+                    id: customObjectComponent
+                    Rectangle {
+                        id: customRect
+                        property var obj
+                        property alias color: customRect.color
+                        property alias text: customText.text
+
+                        width: 200
+                        height: 100
+                        radius: 5
+
+                        Text {
+                            id: customText
+                            anchors.centerIn: parent
+                            color: "white"
+                            font.pixelSize: 16
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                console.log("Custom object clicked:", customText.text)
+                            }
+                        }
+                    }
+                }
+
+                XdgShell {
+                    onToplevelCreated: (toplevel, xdgSurface) => {
+                        // Clients werden jetzt innerhalb des compositorSurface platziert
+                        var item = chromeComponent.createObject(compositorSurface, { "shellSurface": xdgSurface } )
+                        var w = compositorSurface.width / 2
+                        var h = compositorSurface.height / 2
+                        item.x = Math.random() * w
+                        item.y = Math.random() * h
+                        var listCopy = itemList
+                        listCopy.push(item)
+                        itemList = listCopy
+                    }
+                }
+
+                CustomExtension {
+                    id: custom
+                    onSurfaceAdded: (surface) => {
+                        var item = itemForSurface(surface)
+                        item.isCustom = true
+                    }
+                    onBounce: (surface, ms) => { itemForSurface(surface).doBounce(ms) }
+                    onSpin: (surface, ms) => { itemForSurface(surface).doSpin(ms) }
+                    onCustomObjectCreated: (obj) => {
+                        customObjectComponent.createObject(compositorSurface, {
+                            "color": obj.color, "text": obj.text, "obj": obj
+                        })
+                    }
+                }
+
+                function setDecorations(shown) {
+                    var n = itemList.length
+                    for (var i = 0; i < n; i++) {
+                        if (itemList[i].isCustom)
+                            custom.showDecorations(itemList[i].surface.client, shown)
+                    }
+                }
             }
         }
         Item {
@@ -76,15 +312,12 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                     height: 8
                     color: "#ffffff"
                     border.width: 1
-                    DesignEffect {
-                        visible: true
-                        backgroundBlurVisible: true
-                        layerBlurVisible: false
-                        effects: [
-                            DesignDropShadow {
-                                showBehind: true
-                            }
-                        ]
+                    layer.enabled: true
+                    layer.effect: DropShadow {
+                        horizontalOffset: 3
+                        verticalOffset: 3
+                        radius: 8.0
+                        color: "#80000000"
                     }
                 }
 
@@ -105,16 +338,11 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                     font.family: "Abel"
                     style: Text.Outline
                     styleColor: "#000000"
-
-                    DesignEffect {
-                        visible: true
-                        backgroundBlurVisible: true
-                        layerBlurVisible: false
-                        effects: [
-                            DesignDropShadow {
-                                showBehind: true
-                            }
-                        ]
+                    layer.effect: DropShadow {
+                        horizontalOffset: 3
+                        verticalOffset: 3
+                        radius: 8.0
+                        color: "#80000000"
                     }
 
                 }
@@ -138,15 +366,11 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                     style: Text.Outline
                     styleColor: "#000000"
 
-                    DesignEffect {
-                        visible: true
-                        backgroundBlurVisible: true
-                        layerBlurVisible: false
-                        effects: [
-                            DesignDropShadow {
-                                showBehind: true
-                            }
-                        ]
+                    layer.effect: DropShadow {
+                        horizontalOffset: 3
+                        verticalOffset: 3
+                        radius: 8.0
+                        color: "#80000000"
                     }
                 }
             }
@@ -164,15 +388,12 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                     height: 8
                     color: mainRoot.rpmColor
                     border.width: 1
-                    DesignEffect {
-                        visible: true
-                        backgroundBlurVisible: true
-                        layerBlurVisible: false
-                        effects: [
-                            DesignDropShadow {
-                                showBehind: true
-                            }
-                        ]
+                    layer.enabled: true
+                    layer.effect: DropShadow {
+                        horizontalOffset: 3
+                        verticalOffset: 3
+                        radius: 8.0
+                        color: "#80000000"
                     }
                 }
 
@@ -193,16 +414,11 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                     font.family: "Abel"
                     style: Text.Outline
                     styleColor: "#000000"
-
-                    DesignEffect {
-                        visible: true
-                        backgroundBlurVisible: true
-                        layerBlurVisible: false
-                        effects: [
-                            DesignDropShadow {
-                                showBehind: true
-                            }
-                        ]
+                    layer.effect: DropShadow {
+                        horizontalOffset: 3
+                        verticalOffset: 3
+                        radius: 8.0
+                        color: "#80000000"
                     }
 
                 }
@@ -226,15 +442,11 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                     style: Text.Outline
                     styleColor: "#000000"
 
-                    DesignEffect {
-                        visible: true
-                        backgroundBlurVisible: true
-                        layerBlurVisible: false
-                        effects: [
-                            DesignDropShadow {
-                                showBehind: true
-                            }
-                        ]
+                    layer.effect: DropShadow {
+                        horizontalOffset: 3
+                        verticalOffset: 3
+                        radius: 8.0
+                        color: "#80000000"
                     }
                 }
             }
@@ -249,7 +461,10 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                         id: node
                         Model {
                             id: model
+                            x: -143.638
+                            y: -79.831
                             source: "#Cube"
+                            z: 79.83064
                             materials: [
                                 DefaultMaterial { diffuseColor: Qt.rgba(0.053, 0.130, 0.219, 1) }
                             ]
@@ -360,7 +575,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
             Image {
                 id: fanImage
-                source: "icons/fan.png"
+                source: "qrc:/Car_infotainmentContent/icons/fan.png"
                 sourceSize.height: 65
                 sourceSize.width: 65
                 width: 65
@@ -419,7 +634,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
             Image {
                 id: speakerImage
-                source: "icons/volume.png"
+                source: "qrc:/Car_infotainmentContent/icons/volume.png"
                 sourceSize.height: 65
                 sourceSize.width: 65
                 width: 65
@@ -436,8 +651,8 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                 Text {
                     id: volText
                     text: isNaN(volumeRoot.volume)
-                          ? "--"
-                          : Number(volumeRoot.volume).toFixed(0) + " %"
+                        ? "--"
+                        : Number(volumeRoot.volume).toFixed(0) + " %"
                     font.pixelSize: 38
                     color: "white"
                     font.bold: true
@@ -461,13 +676,13 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
         // Auf Signale reagieren
         onDynamicIconClicked: (itemName, iconSource) => {
-                                  console.log("MAIN: Dynamisches Icon geklickt: " + itemName + ", Quelle: " + iconSource);
-                                  // Hier könnten Sie z.B. eine App starten oder eine Ansicht wechseln
-                              }
+            console.log("MAIN: Dynamisches Icon geklickt: " + itemName + ", Quelle: " + iconSource);
+            // Hier könnten Sie z.B. eine App starten oder eine Ansicht wechseln
+        }
         onAppDrawerClicked: () => {
-                                console.log("MAIN: App Drawer wurde geklickt!");
-                                // Hier die Logik für den App Drawer implementieren
-                            }
+            console.log("MAIN: App Drawer wurde geklickt!");
+            // Hier die Logik für den App Drawer implementieren
+        }
     }
 
     // Steuerungs-Buttons zum Demonstrieren
@@ -483,31 +698,31 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
             text: "Spotify hinzufügen"
             onClicked: {
                 // Annahme: Sie haben Icons im qrc unter /app_icons/
-                myAppTaskbar.addIcon("Spotify", "icons/Spotify.png", "limegreen");
+                myAppTaskbar.addIcon("Spotify", "qrc:/Car_infotainmentContent/icons/Spotify.png", "limegreen");
             }
         }
         Button {
             text: "Karten hinzufügen"
             onClicked: {
-                myAppTaskbar.addIcon("Karten", "icons/map.png", "tomato");
+                myAppTaskbar.addIcon("Karten", "qrc:/Car_infotainmentContent/icons/map.png", "tomato");
             }
         }
         Button {
             text: "Spotify2 hinzufügen"
             onClicked: {
-                myAppTaskbar.addIcon("Spotify2", "icons/map.png", "tomato");
+                myAppTaskbar.addIcon("Spotify2", "qrc:/Car_infotainmentContent/icons/map.png", "tomato");
             }
         }
         Button {
             text: "Spotify3 hinzufügen"
             onClicked: {
-                myAppTaskbar.addIcon("Spotify3", "icons/map.png", "tomato");
+                myAppTaskbar.addIcon("Spotify3", "qrc:/Car_infotainmentContent/icons/map.png", "tomato");
             }
         }
         Button {
             text: "Navigation hinzufügen"
             onClicked: {
-                myAppTaskbar.addIcon("Navigation", "icons/placeholder.png", "dodgerblue");
+                myAppTaskbar.addIcon("Navigation", "qrc:/Car_infotainmentContent/icons/placeholder.png", "dodgerblue");
             }
         }
         Button {
@@ -530,7 +745,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
         }
         TextField {
             id: appIdInput
-            placeholderText: "App-ID eingeben (z. B. YouTube)"
+            placeholderText: "App-ID eingeben (z. B. YouTube)"
             onAccepted: {
                 if (text.length > 0) {
                     appProvider.addApp(text, "qrc:/Car_infotainmentContent/icons/placeholder.png", "#FF0000");
@@ -541,14 +756,8 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
         }
     }
 
+    Component.onCompleted: {
+        var testImage = Qt.resolvedUrl("qrc:/Car_infotainmentContent/icons/map.png");
+        console.log("Test image URL:", testImage);
+    }
 }
-
-
-
-
-
-/*##^##
-Designer {
-    D{i:0}D{i:27;cameraSpeed3d:25;cameraSpeed3dMultiplier:1}
-}
-##^##*/
