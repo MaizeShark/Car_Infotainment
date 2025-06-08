@@ -35,6 +35,12 @@ users=
 
 ### Reload the service
 
+
+### Build
+cmake .. \
+  -DCMAKE_PREFIX_PATH=~/Qt/6.8.3/gcc_64
+
+
 ```bash
 sudo systemctl daemon-reload && sudo systemctl restart geoclue.service
 ```
