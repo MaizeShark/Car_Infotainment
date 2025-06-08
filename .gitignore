@@ -6,11 +6,14 @@ Generated/
 # CMake user files
 CMakeUserPresets.json
 CMakePresets.json
+CMakeLists.txt.user
 
 # Qt Creator / Qt Design Studio user files
 *.pro.user*
 *.qmlproject.user*
-*.qtds # Often user-specific layouts etc. for Qt Design Studio
+*.qmlproject.qtds
+*.qtds
+# Often user-specific layouts etc. for Qt Design Studio
 *.autosave
 
 # IDE-specific folders
