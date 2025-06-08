@@ -36,12 +36,25 @@ users=
 ### Reload the service
 
 
-### Build
-cmake .. \
-  -DCMAKE_PREFIX_PATH=~/Qt/6.8.3/gcc_64
-
-
 ```bash
 sudo systemctl daemon-reload && sudo systemctl restart geoclue.service
 ```
 
+
+### Build
+```bash
+cmake .. \
+  -DCMAKE_PREFIX_PATH=~/Qt/6.8.3/gcc_64
+
+make -j$(nproc)
+```
+
+### Running
+
+```bash
+QT_XCB_GL_INTEGRATION=xcb_egl QT_WAYLAND_CLIENT_BUFFER_INTEGRATION=xcomposite-egl ./Car_Infotainment
+```
+
+```bash
+QT_QPA_PLATFORM=wayland pure-maps
+```
