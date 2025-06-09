@@ -4,15 +4,18 @@ import QtQuick.Window
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import QtQuick3D
+import QtQuick3D.Helpers
 import QtWayland.Compositor
 import QtWayland.Compositor.XdgShell
 import io.qt.examples.customextension 1.0
+
 
 // Wichtig: Stellen Sie sicher, dass Qt Design Studio/Ihr Projekt Taskbar.qml finden kann.
 // Wenn Taskbar.qml im selben Ordner wie main.qml liegt, ist kein spezieller Import nötig.
 // Ansonsten: import "./components" o.ä. und Taskbar.qml in den Ordner components legen.
 // import QtQuick.Studio.Components 1.0
 // import QtQuick.Studio.DesignEffects
+import "qrc:/Generated/QtQuick3D/Volvi1"
 
 Window { // Oder Rectangle, wenn dies eine Komponente ist
     id: mainRoot
@@ -493,19 +496,27 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                     DirectionalLight { ambientColor: Qt.rgba(1.0, 1.0, 1.0, 1.0) }
                     Node {
                         id: node
-                        Model {
+                        /*Model {
                             id: model
-                            x: -143.638
-                            y: -79.831
+                            x: 0
+                            y: 0
+                            z: 0
                             source: "#Cube"
-                            z: 79.83064
                             materials: [
                                 DefaultMaterial { diffuseColor: Qt.rgba(0.053, 0.130, 0.219, 1) }
                             ]
+                        }*/
+                        Volvi1{
+                            x: 0
+                            y: 0
+                            scale.z: 100
+                            scale.y: 100
+                            scale.x: 100
+                            z: 0
                         }
                     }
-                    OrthographicCamera {
-                        id: cameraOrthographicFront
+                    PerspectiveCamera {
+                        id: cameraPerspectiveFront
                         y: 500; z: 1000
                         lookAtNode: node
                     }
@@ -513,7 +524,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                 View3D {
                     anchors.fill: parent
                     importScene: standAloneScene
-                    camera: cameraOrthographicFront
+                    camera: cameraPerspectiveFront
                 }
                 MouseArea {
                     anchors.fill:parent
@@ -795,3 +806,8 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
         console.log("Test image URL:", testImage);
     }
 }
+/*##^##
+Designer {
+    D{i:0}D{i:47;cameraSpeed3d:25;cameraSpeed3dMultiplier:1}
+}
+##^##*/
