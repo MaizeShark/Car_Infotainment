@@ -9,14 +9,12 @@ import QtWayland.Compositor
 import QtWayland.Compositor.XdgShell
 import io.qt.examples.customextension 1.0
 
-
 // Wichtig: Stellen Sie sicher, dass Qt Design Studio/Ihr Projekt Taskbar.qml finden kann.
 // Wenn Taskbar.qml im selben Ordner wie main.qml liegt, ist kein spezieller Import nötig.
 // Ansonsten: import "./components" o.ä. und Taskbar.qml in den Ordner components legen.
 // import QtQuick.Studio.Components 1.0
 // import QtQuick.Studio.DesignEffects
 import Generated.QtQuick3D.Volvi
-
 
 Window { // Oder Rectangle, wenn dies eine Komponente ist
     id: mainRoot
@@ -28,6 +26,30 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
     property bool show_rpm: false
     property int rpm: 7000
     property string rpmColor: "#ffffff"
+    // property bool name: value
+    property bool turnL: true
+    property bool turnR: true
+    property bool blinkState: false
+
+    Timer {
+        id: blinkTimer
+        interval: 330 // 1 second
+        repeat: true
+        onTriggered: {
+            blinkState = !blinkState;
+        }
+    }
+    function updateBlinker() {
+        if (turnL || turnR) {
+            blinkTimer.start();
+            console.log("Blinker started: turnL =", turnL, "turnR =", turnR);
+        } else {
+            blinkTimer.stop();
+            blinkState = false;
+        }
+    }
+    onTurnLChanged: updateBlinker()
+    onTurnRChanged: updateBlinker()
 
     Image {
         id: image
@@ -108,22 +130,20 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                                     color: "#CCFFFFFF"
                                     radius: 5
                                     Text {
-                                        text: "window: " + modelData.shellSurface.toplevel.title + "\n["
-                                            + modelData.shellSurface.toplevel.appId
-                                            + (modelData.isCustom ? "]\nfont size: " + modelData.fontSize : "]\nNo extension")
+                                        text: "window: " + modelData.shellSurface.toplevel.title + "\n[" + modelData.shellSurface.toplevel.appId + (modelData.isCustom ? "]\nfont size: " + modelData.fontSize : "]\nNo extension")
                                         color: modelData.isCustom ? "black" : "darkgray"
                                     }
                                     MouseArea {
                                         enabled: modelData.isCustom
                                         anchors.fill: parent
-                                        onWheel: (wheel) => {
+                                        onWheel: wheel => {
                                             if (wheel.angleDelta.y > 0)
-                                                modelData.fontSize++
+                                                modelData.fontSize++;
                                             else if (wheel.angleDelta.y < 0 && modelData.fontSize > 3)
-                                                modelData.fontSize--
+                                                modelData.fontSize--;
                                         }
                                         onDoubleClicked: {
-                                            comp.customExtension.close(modelData.surface)
+                                            comp.customExtension.close(modelData.surface);
                                         }
                                     }
                                 }
@@ -145,7 +165,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                         anchors.margins: 10
                         width: 100
                         height: 100
-                        property bool on : true
+                        property bool on: true
                         color: on ? "#DEC0DE" : "#FACADE"
                         Text {
                             anchors.fill: parent
@@ -157,7 +177,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                parent.on = !parent.on
+                                parent.on = !parent.on;
                                 comp.setDecorations(parent.on);
                             }
                         }
@@ -180,10 +200,10 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
                 // Der Rest deiner Compositor-Logik bleibt gleich...
                 function itemForSurface(surface) {
-                    var n = itemList.length
+                    var n = itemList.length;
                     for (var i = 0; i < n; i++) {
                         if (itemList[i].surface === surface)
-                            return itemList[i]
+                            return itemList[i];
                     }
                 }
 
@@ -193,7 +213,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                         id: chrome
                         property bool isCustom
                         property int fontSize: 12
-                        
+
                         // Basisgröße definieren
                         property int baseWidth: 800
                         property int baseHeight: 600
@@ -219,35 +239,53 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
                         // Rest der chrome-Eigenschaften
                         onSurfaceDestroyed: {
-                            var index = comp.itemList.indexOf(chrome)
+                            var index = comp.itemList.indexOf(chrome);
                             if (index > -1) {
-                                comp.itemList.splice(index, 1)
+                                comp.itemList.splice(index, 1);
                             }
-                            chrome.destroy()
+                            chrome.destroy();
                         }
                         transform: [
                             Rotation {
                                 id: yRot
-                                origin.x: chrome.width / 2; origin.y: chrome.height / 2
+                                origin.x: chrome.width / 2
+                                origin.y: chrome.height / 2
                                 angle: 0
-                                axis { x: 0; y: 1; z: 0 }
+                                axis {
+                                    x: 0
+                                    y: 1
+                                    z: 0
+                                }
                             }
                         ]
                         NumberAnimation {
                             id: spinAnimation
-                            running: false; loops: 2; target: yRot; property: "angle"
-                            from: 0; to: 360; duration: 400
+                            running: false
+                            loops: 2
+                            target: yRot
+                            property: "angle"
+                            from: 0
+                            to: 360
+                            duration: 400
                         }
-                        function doSpin(ms) { spinAnimation.start() }
+                        function doSpin(ms) {
+                            spinAnimation.start();
+                        }
                         NumberAnimation {
                             id: bounceAnimation
-                            running: false; target: chrome; property: "y"
-                            from: 0; to: comp.defaultOutput.geometry.height - chrome.height
-                            easing.type: Easing.OutBounce; duration: 1000
+                            running: false
+                            target: chrome
+                            property: "y"
+                            from: 0
+                            to: comp.defaultOutput.geometry.height - chrome.height
+                            easing.type: Easing.OutBounce
+                            duration: 1000
                         }
-                        function doBounce(ms) { bounceAnimation.start() }
+                        function doBounce(ms) {
+                            bounceAnimation.start();
+                        }
                         onFontSizeChanged: {
-                            custom.setFontSize(surface, fontSize)
+                            custom.setFontSize(surface, fontSize);
                         }
                     }
                 }
@@ -275,7 +313,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                console.log("Custom object clicked:", customText.text)
+                                console.log("Custom object clicked:", customText.text);
                             }
                         }
                     }
@@ -308,24 +346,30 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
                 CustomExtension {
                     id: custom
-                    onSurfaceAdded: (surface) => {
-                        var item = itemForSurface(surface)
-                        item.isCustom = true
+                    onSurfaceAdded: surface => {
+                        var item = itemForSurface(surface);
+                        item.isCustom = true;
                     }
-                    onBounce: (surface, ms) => { itemForSurface(surface).doBounce(ms) }
-                    onSpin: (surface, ms) => { itemForSurface(surface).doSpin(ms) }
-                    onCustomObjectCreated: (obj) => {
+                    onBounce: (surface, ms) => {
+                        itemForSurface(surface).doBounce(ms);
+                    }
+                    onSpin: (surface, ms) => {
+                        itemForSurface(surface).doSpin(ms);
+                    }
+                    onCustomObjectCreated: obj => {
                         customObjectComponent.createObject(compositorSurface, {
-                            "color": obj.color, "text": obj.text, "obj": obj
-                        })
+                            "color": obj.color,
+                            "text": obj.text,
+                            "obj": obj
+                        });
                     }
                 }
 
                 function setDecorations(shown) {
-                    var n = itemList.length
+                    var n = itemList.length;
                     for (var i = 0; i < n; i++) {
                         if (itemList[i].isCustom)
-                            custom.showDecorations(itemList[i].surface.client, shown)
+                            custom.showDecorations(itemList[i].surface.client, shown);
                     }
                 }
             }
@@ -336,7 +380,6 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: parent.width / 2
-
 
             Item {
                 id: speed
@@ -382,7 +425,6 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                         radius: 8.0
                         color: "#80000000"
                     }
-
                 }
                 Text {
                     id: kmh
@@ -458,7 +500,6 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                         radius: 8.0
                         color: "#80000000"
                     }
-
                 }
                 Text {
                     id: rpmText2
@@ -494,73 +535,237 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
                 Node {
                     id: standAloneScene
+                    property bool turnL: false
+                    property bool turnR: false
+                    property bool blinkState: false
                     DirectionalLight {
-                        x: -0;
-                        y: 194.481;
-                        eulerRotation.z: 0.00002;
-                        eulerRotation.y: -0.00001;
-                        eulerRotation.x: -45.22048;
-                        z: 352.30603;
-                        brightness: 1;
-                        ambientColor: Qt.rgba(1.0, 1.0, 1.0, 1.0) }
+                        x: -0
+                        y: 194.481
+                        eulerRotation.z: 0.00002
+                        eulerRotation.y: -0.00001
+                        eulerRotation.x: -45.22048
+                        z: 352.30603
+                        brightness: 1
+                        ambientColor: Qt.rgba(1.0, 1.0, 1.0, 1.0)
+                    }
 
                     Node {
                         id: node
-                        /*Model {
-                            id: model
+                        Volvi {
                             x: 0
                             y: 0
                             z: 0
-                            source: "#Cube"
-                            materials: [
-                                DefaultMaterial { diffuseColor: Qt.rgba(0.053, 0.130, 0.219, 1) }
-                            ]
-                        }*/
-                        Volvi{
-                        x: 0
-                        y: 0
-                        z: 0
+                        }
+
+                        SpotLight {
+                            id: low_beam_L
+                            x: -72.907
+                            y: 67.096
+                            shadowMapQuality: Light.ShadowMapQualityMedium
+                            castsShadow: true
+                            coneAngle: 45
+                            innerConeAngle: 30
+                            constantFade: 1
+                            linearFade: 0.2
+                            quadraticFade: 1
+                            brightness: 1500
+                            z: -206.05139
+                            color: "#FFD1A3"
+                            shadowBias: 3
+                            shadowFactor: 85
+                            shadowMapFar: 1000
+                        }
+
+                        SpotLight {
+                            id: low_beam_R
+                            x: 72.396
+                            y: 66.901
+                            shadowMapQuality: Light.ShadowMapQualityMedium
+                            castsShadow: true
+                            shadowBias: 3
+                            shadowFactor: 85
+                            shadowMapFar: 1000
+                            coneAngle: 45
+                            innerConeAngle: 30
+                            constantFade: 1
+                            linearFade: 0.2
+                            quadraticFade: 1
+                            brightness: 1500
+                            color: "#FFD1A3"
+                            z: -207.28381
+                        }
+                        SpotLight {
+                            id: high_beam_L
+                            x: -59.38
+                            y: 64.129
+                            z: -206.05139
+                            color: "#FFF3E0"
+                            coneAngle: 40
+                            innerConeAngle: 30
+                            constantFade: 1
+                            linearFade: 0
+                            quadraticFade: 1
+                            shadowBias: 10
+                            shadowFactor: 75
+                            shadowMapFar: 5000
+                            brightness: 600
+                        }
+                        SpotLight {
+                            id: high_beam_R
+                            x: 60.911
+                            y: 64.129
+                            z: -206.05139
+                            color: "#FFF3E0"
+                            coneAngle: 40
+                            innerConeAngle: 30
+                            constantFade: 1
+                            linearFade: 0
+                            quadraticFade: 1
+                            shadowBias: 10
+                            shadowFactor: 75
+                            shadowMapFar: 5000
+                            brightness: 800
+                        }
+                        SpotLight {
+                            id: fog_lamps_L
+                            x: -75
+                            y: 40
+                            z: -210
+                            color: "#FFF3E0"
+                            coneAngle: 40
+                            innerConeAngle: 30
+                            constantFade: 1
+                            linearFade: 0
+                            quadraticFade: 1
+                            shadowBias: 10
+                            shadowFactor: 75
+                            shadowMapFar: 5000
+                            brightness: 800
+                        }
+                        SpotLight {
+                            id: fog_lamps_R
+                            x: 75
+                            y: 40
+                            z: -210
+                            color: "#FFF3E0"
+                            coneAngle: 40
+                            innerConeAngle: 30
+                            constantFade: 1
+                            linearFade: 0
+                            quadraticFade: 1
+                            shadowBias: 10
+                            shadowFactor: 75
+                            shadowMapFar: 5000
+                            brightness: 600
+                        }
+
+                        SpotLight {
+                            id: direction_indicator_L
+                            x: -83
+                            y: 67
+                            constantFade: 1
+                            eulerRotation.z: 0
+                            eulerRotation.y: 28
+                            eulerRotation.x: -0
+                            shadowMapQuality: Light.ShadowMapQualityMedium
+                            castsShadow: true
+                            shadowBias: 5
+                            shadowFactor: 50
+                            shadowMapFar: 2000
+                            coneAngle: 70
+                            innerConeAngle: 45
+                            linearFade: 0.02
+                            quadraticFade: 0.8
+                            brightness: 280
+                            z: -198
+                            visible: turnL && blinkState
+                            color: "#FFA500"
+                        }
+
+                        SpotLight {
+                            id: direction_indicator_R
+                            x: 83
+                            y: 67
+                            constantFade: 1
+                            eulerRotation.z: 0
+                            eulerRotation.y: -28
+                            eulerRotation.x: -0
+                            shadowMapQuality: Light.ShadowMapQualityMedium
+                            castsShadow: true
+                            shadowBias: 5
+                            shadowFactor: 50
+                            shadowMapFar: 2000
+                            coneAngle: 70
+                            innerConeAngle: 45
+                            linearFade: 0.02
+                            quadraticFade: 0.8
+                            brightness: 280
+                            z: -198
+                            visible: turnR && blinkState
+                            color: "#FFA500"
                         }
                     }
                     PerspectiveCamera {
                         id: cameraPerspectiveFront
-                        y: 250; z: 400
+                        y: 250
+                        z: 400
                         lookAtNode: node
                     }
+
+                    Model {
+                        id: cube
+                        x: 0
+                        y: -50
+                        source: "#Cube"
+                        scale.z: 120
+                        scale.y: 1
+                        scale.x: 29.26823
+                        z: 0
+                        materials: principledMaterial
+                    }
                 }
+
                 View3D {
                     anchors.fill: parent
                     importScene: standAloneScene
                     camera: cameraPerspectiveFront
-                    environment: SceneEnvironment {
-                        antialiasingMode: SceneEnvironment.MSAA
-                        tonemapMode: SceneEnvironment.TonemapModeFilmic
+                    environment: ExtendedSceneEnvironment {
                         backgroundMode: SceneEnvironment.SkyBox
-                        lightProbe: Texture {
-                            source: "qrc:/Images/urban_street_03_4k.hdr"
-                        }
-                    }
+                        lightProbe: Texture { source: "qrc:/Images/urban_street_03_4k.hdr" }
 
+                        glowEnabled: true
+                        glowStrength: 1.25
+                        glowBloom: 0.25
+                        glowBlendMode: ExtendedSceneEnvironment.GlowBlendMode.Additive
+                    }
                 }
                 MouseArea {
-                    anchors.fill:parent
+                    anchors.fill: parent
                     property real pressedX
                     property real pressedY
                     onMouseXChanged: Qt.callLater(update)
                     onMouseYChanged: Qt.callLater(update)
                     onPressed: {
-                        [pressedX,pressedY] = [mouseX,mouseY];
+                        [pressedX, pressedY] = [mouseX, mouseY];
                     }
                     function update() {
-                        let [dx,dy] = [mouseX - pressedX,mouseY - pressedY];
-                        [pressedX,pressedY] = [mouseX,mouseY];
+                        let [dx, dy] = [mouseX - pressedX, mouseY - pressedY];
+                        [pressedX, pressedY] = [mouseX, mouseY];
                         node.rotate(dx, Qt.vector3d(0, 1, 0), Node.SceneSpace);
-                        // node.rotate(dy, Qt.vector3d(1, 0, 0), Node.SceneSpace);
+                    // node.rotate(dy, Qt.vector3d(1, 0, 0), Node.SceneSpace);
                     }
                 }
 
                 Item {
                     id: __materialLibrary__
+
+                    PrincipledMaterial {
+                        id: principledMaterial
+                        roughness: 1
+                        metalness: 0
+                        baseColor: "#000000"
+                        objectName: "New Material"
+                    }
                 }
             }
         }
@@ -608,7 +813,6 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
         }
     }
 
-
     Rectangle {
         id: climateRoot
         anchors.left: taskbarBlurBackground.left // Anker an Unterkante Rechteck
@@ -653,7 +857,8 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
                 Text {
                     id: tempText
                     text: {
-                        if (isNaN(climateRoot.temperature)) return "--";
+                        if (isNaN(climateRoot.temperature))
+                            return "--";
                         if (languageManager.currentLanguage === "de") {
                             return Number(climateRoot.temperature).toFixed(1) + " " + qsTr("°C");
                         } else {
@@ -711,9 +916,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 
                 Text {
                     id: volText
-                    text: isNaN(volumeRoot.volume)
-                        ? "--"
-                        : Number(volumeRoot.volume).toFixed(0) + " %"
+                    text: isNaN(volumeRoot.volume) ? "--" : Number(volumeRoot.volume).toFixed(0) + " %"
                     font.pixelSize: 38
                     color: "white"
                     font.bold: true
@@ -747,7 +950,6 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
     }
 
     // Steuerungs-Buttons zum Demonstrieren
-
 
     ColumnLayout {
         anchors.top: parent.top
@@ -818,6 +1020,7 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
     }
 
     Component.onCompleted: {
+        updateBlinker(); // <-- Blinker-Status initial prüfen
         var testImage = Qt.resolvedUrl("qrc:/Car_infotainmentContent/icons/map.png");
         console.log("Test image URL:", testImage);
     }
@@ -825,6 +1028,6 @@ Window { // Oder Rectangle, wenn dies eine Komponente ist
 /*##^##
 Designer {
     D{i:0;matPrevEnvDoc:"SkyBox";matPrevEnvValueDoc:"preview_studio";matPrevModelDoc:"#Sphere"}
-D{i:47;cameraSpeed3d:16;cameraSpeed3dMultiplier:1}D{i:52;cameraSpeed3d:10;cameraSpeed3dMultiplier:1}
+D{i:48;cameraSpeed3d:19;cameraSpeed3dMultiplier:1}
 }
 ##^##*/

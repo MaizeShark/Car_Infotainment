@@ -616,7 +616,7 @@ Node {
         PrincipledMaterial {
             id: right_front_light_001_material
             objectName: "right front light.001"
-            baseColor: "#ff00ffc8"
+            baseColor: "#ffffff"
             baseColorMap: volvi_fbm_vehiclelights128_png_texture
             roughness: 1
         }
@@ -637,6 +637,9 @@ Node {
 
         PrincipledMaterial {
             id: pered_fars_001_material
+            emissiveFactor.z: 0
+            emissiveFactor.y: 0
+            emissiveFactor.x: 0
             objectName: "pered fars.001"
             baseColorMap: volvi_fbm_headlight4_png_texture
             roughness: 1
