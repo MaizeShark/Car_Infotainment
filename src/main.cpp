@@ -18,6 +18,7 @@
 #include "climateprovider.h"
 #include "appprovider.h"
 #include "applauncher.h"
+#include "settingsProvider.h"
 
 int main(int argc, char *argv[])
 {
@@ -35,6 +36,9 @@ int main(int argc, char *argv[])
 
     // QML-Typ für CustomExtension registrieren (MUSS VOR engine.load() erfolgen!)
     qmlRegisterType<CustomExtension>("io.qt.examples.customextension", 1, 0, "CustomExtension");
+
+    SettingsProvider settingsProvider;
+    engine.rootContext()->setContextProperty("SettingsProvider", &settingsProvider);
 
     AppLauncher launcher;
     engine.rootContext()->setContextProperty("appLauncher", &launcher);
@@ -54,6 +58,7 @@ int main(int argc, char *argv[])
     // Update these paths to match the QML module resources
     appProvider->addApp("Map", "qrc:/Car_infotainmentContent/icons/map.png", "red");
     appProvider->addApp("Spotify", "qrc:/Car_infotainmentContent/icons/Spotify.png", "limegreen");
+    appProvider->addApp("Settings", "qrc:/Car_infotainmentContent/icons/settings.svg", "grey");
 
     languageManager->setCurrentLanguage("de");
 

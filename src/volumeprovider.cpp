@@ -1,4 +1,4 @@
-#include "volumeprovider.h"
+ #include "volumeprovider.h"
 
 VolumeProvider::VolumeProvider(QObject *parent)
     : QObject(parent)

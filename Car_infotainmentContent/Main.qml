@@ -873,6 +873,9 @@ Window {
                 case "spotify":
                     appLauncher.launchApp("spotify")
                     break;
+                case "settings":
+                    settings.visible = !settings.visible
+                    break;
                 default:
                     console.warn("Unbekannter Item-Name: " + itemName);
             }
@@ -933,14 +936,26 @@ Window {
             id: appappInput
             placeholderText: "App-ID eingeben (z. B. YouTube)"
             onAccepted: {
-                if (text.length > 0) {
+                if (text.length > 0 && text !== "settings") {
                     myAppTaskbar.addIcon(text, "qrc:/Car_infotainmentContent/icons/placeholder.png", "dodgerblue");
+                } else if (text === "settings"){
+                    myAppTaskbar.addIcon("Settings", "qrc:/Car_infotainmentContent/icons/settings.svg", "grey")
                 } else {
                     console.log("Bitte eine App-ID eingeben.");
                 }
             }
         }
     }
+
+    Settings {
+        id: settings
+        visible: false
+        anchors.right: parent.right
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+    }
+
 
     Component.onCompleted: {
         updateBlinker(); // <-- Blinker-Status initial prüfen

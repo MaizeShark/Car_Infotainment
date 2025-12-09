@@ -23,6 +23,10 @@ void AppLauncher::launchApp(QString appName)
         // Option 2: mit Flatpak
         // program = "flatpak";
         // arguments << "run" << "io.github.rinigus.PureMaps";
+    } else if (appName == "settings") {
+
+        program = "plasma-open-settings";
+
     } else {
         qWarning() << "Unbekannte App:" << appName;
         return;

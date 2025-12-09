@@ -21,5 +21,7 @@
         <file>Car_infotainmentContent/icons/placeholder.png</file>
         <file>Car_infotainmentContent/icons/app-drawer.png</file>
         <file>Car_infotainmentContent/images/urban_street_03_2k.hdr</file>
+        <file>Car_infotainmentContent/icons/settings.svg</file>
+        <file>Car_infotainmentContent/Settings.qml</file>
     </qresource>
 </RCC>
