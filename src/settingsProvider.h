@@ -1,38 +1,30 @@
-#ifndef SETTINGSPROVIDER_H
-#define SETTINGSPROVIDER_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 #include <QObject>
 #include <QStringList>
-#include <QProcess>
+#include <QRect>
 
-// OpenAuto Configuration Includes
-#include <f1x/openauto/autoapp/Configuration/IConfiguration.hpp>
-#include <aasdk/proto/messages.pb.h>
-
-// Namespace aliases to make code readable
-namespace autoapp = f1x::openauto::autoapp;
-namespace aap_msg = aap_protobuf::service::media::sink::message;
-
-// Helper struct to hold temporary settings before saving
-struct SettingsState {
-    bool is60FPS;
-    int resolution; // 0=480p, 1=720p, 2=1080p
-    int dpi;
-    int omxLayer;
-    int marginWidth;
-    int marginHeight;
-    bool speechChannel;
-    bool musicChannel;
-    bool isRtAudio; // true = RT, false = Qt
-    QString outputDevice;
-    QString inputDevice;
+// Helper struct to store settings data
+struct SettingsData {
+    bool is60FPS = false;
+    int resolution = 0; // 0=480p, 1=720p, 2=1080p
+    int dpi = 160;
+    int omxLayer = 1;
+    int marginWidth = 0;
+    int marginHeight = 0;
+    bool speechChannel = true;
+    bool musicChannel = true;
+    bool isRtAudio = true; // true=RT, false=Qt
+    QString outputDevice = "Default";
+    QString inputDevice = "Default";
 };
 
 class SettingsProvider : public QObject
 {
     Q_OBJECT
 
-    // --- Properties for QML ---
+    // --- Properties for QML Binding ---
     Q_PROPERTY(bool is60FPS READ is60FPS WRITE setIs60FPS NOTIFY is60FPSChanged)
     Q_PROPERTY(int resolution READ resolution WRITE setResolution NOTIFY resolutionChanged)
     Q_PROPERTY(int dpi READ dpi WRITE setDpi NOTIFY dpiChanged)
@@ -47,20 +39,21 @@ class SettingsProvider : public QObject
     Q_PROPERTY(QString currentOutputDevice READ currentOutputDevice WRITE setCurrentOutputDevice NOTIFY currentOutputDeviceChanged)
     Q_PROPERTY(QString currentInputDevice READ currentInputDevice WRITE setCurrentInputDevice NOTIFY currentInputDeviceChanged)
 
+    // Device Lists (Read-only for QML models)
     Q_PROPERTY(QStringList inputDevices READ inputDevices NOTIFY inputDevicesChanged)
     Q_PROPERTY(QStringList outputDevices READ outputDevices NOTIFY outputDevicesChanged)
 
 public:
-    // Constructor now takes the Configuration Pointer
-    explicit SettingsProvider(std::shared_ptr<autoapp::configuration::IConfiguration> configuration, QObject *parent = nullptr);
+    explicit SettingsProvider(QObject *parent = nullptr);
 
-    // Actions
+    // --- Actions ---
     Q_INVOKABLE void save();
-    Q_INVOKABLE void load();   // Also acts as Cancel
+    Q_INVOKABLE void load();   // Reload from disk/saved state
+    Q_INVOKABLE void cancel(); // Revert changes
     Q_INVOKABLE void onAudioTestClicked();
     Q_INVOKABLE void refreshAudioDevices();
 
-    // Getters
+    // --- Getters ---
     bool is60FPS() const;
     int resolution() const;
     int dpi() const;
@@ -75,7 +68,7 @@ public:
     QStringList inputDevices() const;
     QStringList outputDevices() const;
 
-    // Setters
+    // --- Setters ---
     void setIs60FPS(bool v);
     void setResolution(int v);
     void setDpi(int v);
@@ -89,6 +82,7 @@ public:
     void setCurrentInputDevice(const QString &v);
 
 signals:
+    // Change Notifications
     void is60FPSChanged();
     void resolutionChanged();
     void dpiChanged();
@@ -100,18 +94,25 @@ signals:
     void isRtAudioChanged();
     void currentOutputDeviceChanged();
     void currentInputDeviceChanged();
+
     void inputDevicesChanged();
     void outputDevicesChanged();
 
-private:
-    std::shared_ptr<autoapp::configuration::IConfiguration> configuration_;
+    // Signal to tell QML to close the tab or show a toast
+    void settingsSaved();
+    void settingsCancelled();
 
-    SettingsState m_state; // Holds the "Live" values shown in QML
+private:
+    // Internal Helper
+    QStringList fetchPulseAudioDevices(const QString& deviceType);
+    void updatePropertiesFromStruct(const SettingsData& data);
+
+    // Data Storage
+    SettingsData m_current; // What is shown on screen
+    SettingsData m_saved;   // What is on disk
 
     QStringList m_inputDevicesList;
     QStringList m_outputDevicesList;
-
-    QStringList fetchPulseAudioDevices(const QString& deviceType);
 };
 
-#endif // SETTINGSPROVIDER_H
+#endif // SETTINGS_H

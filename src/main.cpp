@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<CustomExtension>("io.qt.examples.customextension", 1, 0, "CustomExtension");
 
     SettingsProvider settingsProvider;
-    engine.rootContext()->setContextProperty("SettingsProvider", &settingsProvider);
+    engine.rootContext()->setContextProperty("settingsProvider", &settingsProvider);
 
     AppLauncher launcher;
     engine.rootContext()->setContextProperty("appLauncher", &launcher);

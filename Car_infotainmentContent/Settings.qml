@@ -299,7 +299,7 @@ Rectangle {
                                             }
                                             ComboBox {
                                                 Layout.fillWidth: true
-                                                model: SettingsProvider.outputDevices
+                                                model: settingsProvider.outputDevices
                                             }
                                         }
 
@@ -310,18 +310,18 @@ Rectangle {
                                             }
                                             ComboBox {
                                                 Layout.fillWidth: true
-                                                model: SettingsProvider.inputDevices
+                                                model: settingsProvider.inputDevices
                                             }
                                         }
 
                                         RowLayout {
                                             Button {
                                                 text: "Refresh Devices"
-                                                onClicked: SettingsProvider.refreshAudioDevices()
+                                                onClicked: settingsProvider.refreshAudioDevices()
                                             }
                                             Button {
                                                 text: "Test"
-                                                onClicked: SettingsProvider.onAudioTestClicked()
+                                                onClicked: settingsProvider.onAudioTestClicked()
                                             }
                                         }
                                     }
