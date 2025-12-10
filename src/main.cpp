@@ -3,16 +3,12 @@
 #include <QQmlContext>
 #include <QMatrix4x4>
 #include <QDebug>
-
 #include <QtCore/QUrl>
-#include <QtCore/QDebug>
-#include <QtGui/QGuiApplication>
-#include <QtQml/QQmlApplicationEngine>
-
 #include <QtQml/qqml.h>
 #include <QtQml/QQmlEngine>
+#include <QtGui/QSurfaceFormat>
 
-#include "customextension.h"
+// #include "customextension.h"
 #include "languagemanager.h"
 #include "volumeprovider.h"
 #include "climateprovider.h"
@@ -22,7 +18,15 @@
 
 int main(int argc, char *argv[])
 {
+    qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
+    // Enable context sharing (Required for QtQuick3D + Wayland)
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
+
+    QSurfaceFormat format;
+    format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
+    QSurfaceFormat::setDefaultFormat(format);
+
     qDebug() << "Application starting...";
     QGuiApplication app(argc, argv);
 
@@ -34,14 +38,11 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     qDebug() << "QML Engine created.";
 
-    // QML-Typ für CustomExtension registrieren (MUSS VOR engine.load() erfolgen!)
-    qmlRegisterType<CustomExtension>("io.qt.examples.customextension", 1, 0, "CustomExtension");
+    SettingsProvider* settingsProvider = new SettingsProvider(&app);
+    engine.rootContext()->setContextProperty("settingsProvider", settingsProvider);
 
-    SettingsProvider settingsProvider;
-    engine.rootContext()->setContextProperty("settingsProvider", &settingsProvider);
-
-    AppLauncher launcher;
-    engine.rootContext()->setContextProperty("appLauncher", &launcher);
+    AppLauncher* launcher = new AppLauncher(&app);
+    engine.rootContext()->setContextProperty("appLauncher", launcher);
 
     LanguageManager* languageManager = new LanguageManager(&engine, &app);
     engine.rootContext()->setContextProperty("languageManager", languageManager);
@@ -55,21 +56,19 @@ int main(int argc, char *argv[])
     AppProvider* appProvider = new AppProvider(&app);
     engine.rootContext()->setContextProperty("appProvider", appProvider);
 
-    // Update these paths to match the QML module resources
     appProvider->addApp("Map", "qrc:/Car_infotainmentContent/icons/map.png", "red");
     appProvider->addApp("Spotify", "qrc:/Car_infotainmentContent/icons/Spotify.png", "limegreen");
     appProvider->addApp("Settings", "qrc:/Car_infotainmentContent/icons/settings.svg", "grey");
 
     languageManager->setCurrentLanguage("de");
 
-    // Load the main QML file from the QML module
     const QUrl url(QStringLiteral("qrc:/Car_infotainmentContent/Main.qml"));
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl)
-            QCoreApplication::exit(-1);
-    }, Qt::QueuedConnection);
+                         if (!obj && url == objUrl)
+                             QCoreApplication::exit(-1);
+                     }, Qt::QueuedConnection);
 
     engine.load(url);
 

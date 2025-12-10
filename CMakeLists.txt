@@ -34,9 +34,6 @@ qt_add_executable(Car_Infotainment_App
     src/languagemanager.cpp src/languagemanager.h
     src/settingsProvider.cpp src/settingsProvider.h
     src/volumeprovider.cpp src/volumeprovider.h
-
-    # Compositor Extension
-    compositor/customextension.cpp compositor/customextension.h
 )
 
 # ====================================================================
@@ -93,7 +90,6 @@ qt6_generate_wayland_protocol_server_sources(Car_Infotainment_App FILES ${PROTOC
 # ====================================================================
 target_include_directories(Car_Infotainment_App PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/compositor
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 

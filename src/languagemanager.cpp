@@ -35,7 +35,7 @@ void LanguageManager::setCurrentLanguage(const QString &languageCode)
     // Vorherigen Translator entfernen, falls einer aktiv war
     if (!m_translator.isEmpty()) {
         QGuiApplication::removeTranslator(&m_translator);
-        m_translator.load(""); // Entladen der aktuellen Übersetzungsdatei
+        static_cast<void>(m_translator.load("")); // Entladen der aktuellen Übersetzungsdatei
         qDebug() << "Removed previous translator.";
     }
 

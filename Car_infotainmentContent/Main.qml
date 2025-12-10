@@ -6,8 +6,7 @@ import Qt5Compat.GraphicalEffects
 import QtQuick3D
 import QtQuick3D.Helpers
 import QtWayland.Compositor
-import QtWayland.Compositor.XdgShell
-import io.qt.examples.customextension 1.0
+import QtWayland.Compositor.IviApplication
 
 // Wichtig: Stellen Sie sicher, dass Qt Design Studio/Ihr Projekt Taskbar.qml finden kann.
 // Wenn Taskbar.qml im selben Ordner wie main.qml liegt, ist kein spezieller Import nötig.
@@ -39,17 +38,17 @@ Window {
         interval: 330 // 1/3 second
         repeat: true
         onTriggered: {
-            blinkState = !blinkState;
+            blinkState = !blinkState
         }
     }
     function updateBlinker() {
         if (turnL || turnR) {
-            blinkState = true;
-            blinkTimer.start();
-            console.log("Blinker started: turnL =", turnL, "turnR =", turnR);
+            blinkState = true
+            blinkTimer.start()
+            console.log("Blinker started: turnL =", turnL, "turnR =", turnR)
         } else {
-            blinkTimer.stop();
-            blinkState = false;
+            blinkTimer.stop()
+            blinkState = false
         }
     }
     onTurnLChanged: updateBlinker()
@@ -72,224 +71,82 @@ Window {
         anchors.top: parent.top
         height: parent.height - 160
 
-        // Replace the SurfaceAggregator with a proper compositor setup
+        // ==========================================
+        // COMPOSITOR AREA (Right Side)
+        // ==========================================
         Item {
             id: puremaps
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: parent.width / 2
-            clip: true // Verhindert, dass der Inhalt über die Grenzen hinaus gezeichnet wird
+            clip: true
 
-            // --- Fixed: Use Rectangle as base container instead of SurfaceAggregator ---
             Rectangle {
                 id: compositorSurface
                 anchors.fill: parent
-                color: "transparent"
+                color: "transparent" // Apps will appear here
 
-                // Hier kommt die UI des Compositor-Screens hin (vorher in CompositorScreen.qml)
+                // Mouse/Touch Tracker
                 WaylandMouseTracker {
                     id: mouseTracker
                     anchors.fill: parent
-                    windowSystemCursorEnabled: !clientCursor.visible
+                    windowSystemCursorEnabled: true
 
-
-                    // Client-Mauszeiger
                     WaylandCursorItem {
                         id: clientCursor
                         x: mouseTracker.mouseX
                         y: mouseTracker.mouseY
-                        seat: comp.defaultSeat // Verweis auf den defaultSeat des Compositors
+                        seat: comp.defaultSeat
+                        visible: false
                     }
                 }
             }
 
-            // --- Fixed: Proper WaylandCompositor setup ---
+            // --- UPDATED WAYLAND COMPOSITOR ---
             WaylandCompositor {
                 id: comp
-                property alias customExtension: custom
-                property var itemList: []
 
-                // KORREKTUR: WaylandOutput mit korrekter Konfiguration
-                defaultOutput: WaylandOutput {
-                    id: waylandOutput
-                    compositor: comp
+                // The logical screen setup
+                WaylandOutput {
+                    sizeFollowsWindow: true
                     window: mainRoot
                 }
 
-                // Der Rest deiner Compositor-Logik bleibt gleich...
-                function itemForSurface(surface) {
-                    var n = itemList.length;
-                    for (var i = 0; i < n; i++) {
-                        if (itemList[i].surface === surface)
-                            return itemList[i];
-                    }
-                }
-
+                // Component that defines how an App looks when it connects
                 Component {
-                    id: chromeComponent
+                    id: appComponent
                     ShellSurfaceItem {
-                        id: chrome
-                        property bool isCustom
-                        property int fontSize: 12
+                        anchors.fill: parent // Force app to fill the 'puremaps' area
+                        onSurfaceDestroyed: destroy()
 
-                        // Basisgröße definieren
-                        property int baseWidth: 800
-                        property int baseHeight: 600
-
-                        // Anpassung der Größe
-                        width: baseWidth
-                        height: baseHeight
-                        anchors.centerIn: parent
-
-                        // Berechnung der Skalierung nach Surface-Erstellung
-                        Connections {
-                            target: chrome.shellSurface
-                            function onSurfaceChanged() {
-                                if (chrome.shellSurface && chrome.shellSurface.surface) {
-                                    var surfaceSize = chrome.shellSurface.surface.size;
-                                    if (surfaceSize.width > 0 && surfaceSize.height > 0) {
-                                        chrome.baseWidth = surfaceSize.width;
-                                        chrome.baseHeight = surfaceSize.height;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Rest der chrome-Eigenschaften
-                        onSurfaceDestroyed: {
-                            var index = comp.itemList.indexOf(chrome);
-                            if (index > -1) {
-                                comp.itemList.splice(index, 1);
-                            }
-                            chrome.destroy();
-                        }
-                        transform: [
-                            Rotation {
-                                id: yRot
-                                origin.x: chrome.width / 2
-                                origin.y: chrome.height / 2
-                                angle: 0
-                                axis {
-                                    x: 0
-                                    y: 1
-                                    z: 0
-                                }
-                            }
-                        ]
-                        NumberAnimation {
-                            id: spinAnimation
-                            running: false
-                            loops: 2
-                            target: yRot
-                            property: "angle"
-                            from: 0
-                            to: 360
-                            duration: 400
-                        }
-                        function doSpin(ms) {
-                            spinAnimation.start();
-                        }
-                        NumberAnimation {
-                            id: bounceAnimation
-                            running: false
-                            target: chrome
-                            property: "y"
-                            from: 0
-                            to: comp.defaultOutput.geometry.height - chrome.height
-                            easing.type: Easing.OutBounce
-                            duration: 1000
-                        }
-                        function doBounce(ms) {
-                            bounceAnimation.start();
-                        }
-                        onFontSizeChanged: {
-                            custom.setFontSize(surface, fontSize);
+                        // Handle resizing
+                        onWidthChanged: handleResized()
+                        onHeightChanged: handleResized()
+                        function handleResized() {
+                            if (width > 0 && height > 0)
+                                shellSurface.sendConfigure(Qt.size(width,
+                                                                   height))
                         }
                     }
                 }
 
-                // Fixed: Proper customObjectComponent definition
-                Component {
-                    id: customObjectComponent
-                    Rectangle {
-                        id: customRect
-                        property var obj
-                        property alias color: customRect.color
-                        property alias text: customText.text
+                // IVI Protocol Implementation
+                IviApplication {
+                    onIviSurfaceCreated: iviSurface =>
+                                         {
+                                             console.log(
+                                                 "IVI Surface Connected. ID: " + iviSurface.iviId)
 
-                        width: 200
-                        height: 100
-                        radius: 5
+                                             // Create the app view inside 'compositorSurface' (the right half)
+                                             var item = appComponent.createObject(
+                                                 compositorSurface, {
+                                                     "shellSurface": iviSurface
+                                                 })
 
-                        Text {
-                            id: customText
-                            anchors.centerIn: parent
-                            color: "white"
-                            font.pixelSize: 16
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                console.log("Custom object clicked:", customText.text);
-                            }
-                        }
-                    }
-                }
-
-                XdgShell {
-                    onToplevelCreated: (toplevel, xdgSurface) => {
-                        // Ensure we have valid dimensions
-                        let windowWidth = Math.max(800, compositorSurface.width || 800);
-                        let windowHeight = Math.max(600, compositorSurface.height || 600);
-
-                        // Create Item
-                        var item = chromeComponent.createObject(compositorSurface, {
-                            "shellSurface": xdgSurface,
-                            "width": windowWidth,
-                            "height": windowHeight
-                        });
-
-                        comp.itemList.push(item);
-
-                        // Pass a QSize object (single argument)
-                        toplevel.sendConfigure(Qt.size(windowWidth, windowHeight));
-
-                        // Then activate fullscreen without parameters
-                        Qt.callLater(() => {
-                            toplevel.sendFullscreen();
-                        });
-                    }
-                }
-
-                CustomExtension {
-                    id: custom
-                    onSurfaceAdded: surface => {
-                        var item = itemForSurface(surface);
-                        item.isCustom = true;
-                    }
-                    onBounce: (surface, ms) => {
-                        itemForSurface(surface).doBounce(ms);
-                    }
-                    onSpin: (surface, ms) => {
-                        itemForSurface(surface).doSpin(ms);
-                    }
-                    onCustomObjectCreated: obj => {
-                        customObjectComponent.createObject(compositorSurface, {
-                            "color": obj.color,
-                            "text": obj.text,
-                            "obj": obj
-                        });
-                    }
-                }
-
-                function setDecorations(shown) {
-                    var n = itemList.length;
-                    for (var i = 0; i < n; i++) {
-                        if (itemList[i].isCustom)
-                            custom.showDecorations(itemList[i].surface.client, shown);
-                    }
+                                             // Trigger initial resize to fit the area
+                                             item.handleResized()
+                                         }
                 }
             }
         }
@@ -670,13 +527,13 @@ Window {
                     onMouseXChanged: Qt.callLater(update)
                     onMouseYChanged: Qt.callLater(update)
                     onPressed: {
-                        [pressedX, pressedY] = [mouseX, mouseY];
+                        [pressedX, pressedY] = [mouseX, mouseY]
                     }
                     function update() {
                         let [dx, dy] = [mouseX - pressedX, mouseY - pressedY];
-                        [pressedX, pressedY] = [mouseX, mouseY];
-                        node.rotate(dx, Qt.vector3d(0, 1, 0), Node.SceneSpace);
-                    // node.rotate(dy, Qt.vector3d(1, 0, 0), Node.SceneSpace);
+                              [pressedX, pressedY] = [mouseX, mouseY]
+                        node.rotate(dx, Qt.vector3d(0, 1, 0), Node.SceneSpace)
+                        // node.rotate(dy, Qt.vector3d(1, 0, 0), Node.SceneSpace);
                     }
                 }
 
@@ -714,9 +571,10 @@ Window {
         // ShaderEffectSource für den Blur-Effekt
         ShaderEffectSource {
             id: effectSource
-            sourceItem: image  // Verweis auf das Hintergrundbild
+            sourceItem: image // Verweis auf das Hintergrundbild
             anchors.fill: parent
-            sourceRect: Qt.rect(0, parent.parent.height - parent.height, parent.width, parent.height)
+            sourceRect: Qt.rect(0, parent.parent.height - parent.height,
+                                parent.width, parent.height)
             live: true
         }
 
@@ -725,14 +583,14 @@ Window {
             id: blur
             anchors.fill: effectSource
             source: effectSource
-            radius: 64  // Stärke des Blur-Effekts, anpassbar
+            radius: 64 // Stärke des Blur-Effekts, anpassbar
             cached: true
         }
 
         // Halbtransparentes Overlay für besseren Kontrast
         Rectangle {
             anchors.fill: parent
-            color: "#50000000"  // Schwarz mit 50% Opacity
+            color: "#50000000" // Schwarz mit 50% Opacity
             opacity: 0.7
         }
     }
@@ -754,7 +612,7 @@ Window {
         property alias language: climateRoot.languageInternal
 
         function temperatureF() {
-            return climateRoot.temperature * 9 / 5 + 32;
+            return climateRoot.temperature * 9 / 5 + 32
         }
 
         RowLayout {
@@ -782,11 +640,13 @@ Window {
                     id: tempText
                     text: {
                         if (isNaN(climateRoot.temperature))
-                            return "--";
+                            return "--"
                         if (languageManager.currentLanguage === "de") {
-                            return Number(climateRoot.temperature).toFixed(1) + " " + qsTr("°C");
+                            return Number(climateRoot.temperature).toFixed(
+                                        1) + " " + qsTr("°C")
                         } else {
-                            return Number(climateRoot.temperatureF()).toFixed(1) + " " + qsTr("°F");
+                            return Number(climateRoot.temperatureF()).toFixed(
+                                        1) + " " + qsTr("°F")
                         }
                     }
                     font.pixelSize: 38
@@ -840,7 +700,10 @@ Window {
 
                 Text {
                     id: volText
-                    text: isNaN(volumeRoot.volume) ? "--" : Number(volumeRoot.volume).toFixed(0) + " %"
+                    text: isNaN(
+                              volumeRoot.volume) ? "--" : Number(
+                                                       volumeRoot.volume).toFixed(
+                                                       0) + " %"
                     font.pixelSize: 38
                     color: "white"
                     font.bold: true
@@ -863,33 +726,31 @@ Window {
         height: 100
 
         // Auf Signale reagieren
-        onDynamicIconClicked: function(itemName, iconSource) {
-            console.log("MAIN: Dynamisches Icon geklickt: " + itemName + ", Quelle: " + iconSource);
+        onDynamicIconClicked: function (itemName, iconSource) {
+            console.log("MAIN: Dynamisches Icon geklickt: " + itemName + ", Quelle: " + iconSource)
 
             switch (itemName) {
-                case "pure-maps":
-                    appLauncher.launchApp("pure-maps")
-                    break;
-                case "spotify":
-                    appLauncher.launchApp("spotify")
-                    break;
-                case "settings":
-                    settings.visible = !settings.visible
-                    break;
-                default:
-                    console.warn("Unbekannter Item-Name: " + itemName);
+            case "pure-maps":
+                appLauncher.launchApp("pure-maps")
+                break
+            case "spotify":
+                appLauncher.launchApp("spotify")
+                break
+            case "settings":
+                settings.visible = !settings.visible
+                break
+            default:
+                console.warn("Unbekannter Item-Name: " + itemName)
             }
         }
 
-
         onAppDrawerClicked: () => {
-            console.log("MAIN: App Drawer wurde geklickt!");
-            // Hier die Logik für den App Drawer implementieren
-        }
+                                console.log("MAIN: App Drawer wurde geklickt!")
+                                // Hier die Logik für den App Drawer implementieren
+                            }
     }
 
     // Steuerungs-Buttons zum Demonstrieren
-
     ColumnLayout {
         anchors.top: parent.top
         anchors.topMargin: 20
@@ -926,9 +787,12 @@ Window {
             placeholderText: "App-ID eingeben (z. B. YouTube)"
             onAccepted: {
                 if (text.length > 0) {
-                    appProvider.addApp(text, "qrc:/Car_infotainmentContent/icons/placeholder.png", "#FF0000");
+                    appProvider.addApp(
+                                text,
+                                "qrc:/Car_infotainmentContent/icons/placeholder.png",
+                                "#FF0000")
                 } else {
-                    console.log("Bitte eine App-ID eingeben.");
+                    console.log("Bitte eine App-ID eingeben.")
                 }
             }
         }
@@ -937,11 +801,17 @@ Window {
             placeholderText: "App-ID eingeben (z. B. YouTube)"
             onAccepted: {
                 if (text.length > 0 && text !== "settings") {
-                    myAppTaskbar.addIcon(text, "qrc:/Car_infotainmentContent/icons/placeholder.png", "dodgerblue");
-                } else if (text === "settings"){
-                    myAppTaskbar.addIcon("Settings", "qrc:/Car_infotainmentContent/icons/settings.svg", "grey")
+                    myAppTaskbar.addIcon(
+                                text,
+                                "qrc:/Car_infotainmentContent/icons/placeholder.png",
+                                "dodgerblue")
+                } else if (text === "settings") {
+                    myAppTaskbar.addIcon(
+                                "Settings",
+                                "qrc:/Car_infotainmentContent/icons/settings.svg",
+                                "grey")
                 } else {
-                    console.log("Bitte eine App-ID eingeben.");
+                    console.log("Bitte eine App-ID eingeben.")
                 }
             }
         }
@@ -956,10 +826,10 @@ Window {
         anchors.bottom: parent.bottom
     }
 
-
     Component.onCompleted: {
-        updateBlinker(); // <-- Blinker-Status initial prüfen
-        var testImage = Qt.resolvedUrl("qrc:/Car_infotainmentContent/icons/map.png");
-        console.log("Test image URL:", testImage);
+        updateBlinker() // <-- Blinker-Status initial prüfen
+        var testImage = Qt.resolvedUrl(
+                    "qrc:/Car_infotainmentContent/icons/map.png")
+        console.log("Test image URL:", testImage)
     }
 }
