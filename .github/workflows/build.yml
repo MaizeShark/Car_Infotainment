@@ -23,7 +23,7 @@ jobs:
       uses: jurplel/install-qt-action@v3
       with:
         version: '6.8.3'
-        modules: 'qtwaylandcompositor qtquick3d'
+        modules: 'qtwaylandcompositor qtquick3d qtshadertools'
 
     - name: Configure CMake
       run: cmake -DQt6_DIR=/home/runner/work/Car_Infotainment/Qt/6.8.3/gcc_64/lib/cmake/Qt6 -B build -S .
