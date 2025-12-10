@@ -26,7 +26,7 @@ jobs:
         modules: 'qtwaylandcompositor qtquick3d'
 
     - name: Configure CMake
-      run: cmake -B build -S .
+      run: cmake -DQt6_DIR=/home/runner/work/Car_Infotainment/Qt/6.8.3/gcc_64/lib/cmake/Qt6 -B build -S .
 
     - name: Build
       run: cmake --build build
