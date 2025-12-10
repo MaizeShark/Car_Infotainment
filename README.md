@@ -44,7 +44,7 @@ For example:
 
 * **pure-maps**:
   Must be built manually. Follow the instructions at:
-  [https://github.com/MaizeShark/pure-maps/blob/Updated-Readme/Build.md](https://github.com/MaizeShark/pure-maps/blob/Updated-Readme/Build.md)
+  [https://github.com/rinigus/pure-maps/blob/master/Build.md](https://github.com/rinigus/pure-maps/blob/master/Build.md)
 
   To run it under Wayland:
 
